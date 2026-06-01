@@ -1,0 +1,37 @@
+# Example caller pipeline — shows how a consuming repo uses the reusable templates.
+# (In a real repo this file lives at .github/workflows/ci.yml at the repo root.)
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    uses: durrello/cicd-pipeline-templates/.github/workflows/reusable-build-test.yml@main
+    with:
+      language: python
+      image-name: sample-app
+      working-directory: examples/app
+
+  security:
+    needs: build-test
+    uses: durrello/cicd-pipeline-templates/.github/workflows/reusable-security-scan.yml@main
+    with:
+      image-name: sample-app
+      scan-ref: examples/app
+
+  build-push-sign:
+    needs: security
+    if: github.ref == 'refs/heads/main'
+    uses: durrello/cicd-pipeline-templates/.github/workflows/reusable-build-push-sign.yml@main
+    with:
+      image-name: sample-app
+
+  deploy:
+    needs: build-push-sign
+    uses: durrello/cicd-pipeline-templates/.github/workflows/reusable-deploy.yml@main
+    with:
+      image-name: sample-app
+      environment: staging
